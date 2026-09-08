@@ -593,13 +593,17 @@ The platform transforms fragmented academic and industry interactions into a con
 * 🎥 **Demo Video:** Add your demo video link here
 
 ---
----
-
 <div align="center">
 
-## ✨ Thank You for Visiting SkillNet! ✨
+<table width="94%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="center" bgcolor="#071A2F">
 
-<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=700&size=28&duration=2500&pause=800&color=00C853&center=true&vCenter=true&width=650&lines=Thank+You!+%F0%9F%9A%80;Learn.+Build.+Grow.+Connect.;Connecting+Skills%2C+Academia+%26+Industry" alt="Thank You Animation" />
+<br><br>
+
+## ✨ Thank You for Visiting SKillNet! ✨
+
+<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=700&size=28&duration=2500&pause=800&color=4DA6FF&center=true&vCenter=true&width=650&lines=Thank+You!+%F0%9F%9A%80;Learn.+Build.+Grow.+Connect.;Connecting+Skills%2C+Academia+%26+Industry" alt="Thank You Animation"/>
 
 <br>
 
@@ -609,11 +613,31 @@ The platform transforms fragmented academic and industry interactions into a con
 
 <br>
 
+<font color="#4DA6FF">
+
+**Connecting Skills, Academia & Industry**
+
+</font>
+
+<br>
+
+✨ &nbsp; **Learn** &nbsp; • &nbsp; **Build** &nbsp; • &nbsp; **Grow** &nbsp; • &nbsp; **Connect** &nbsp; ✨
+
+<br>
+
 ⭐ **Thank you for exploring our project!** ⭐
 
 <br>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:00C853,50:00E676,100:69F0AE&height=120&section=footer" width="100%" alt="SkillNet Footer Animation"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:071A2F,25:0D47A1,50:1565C0,75:1976D2,100:4DA6FF&height=85&section=footer" width="100%" alt="Saarthi Blue Wave"/>
+
+</td>
+</tr>
+</table>
+
+</div>
+```
+
 
 </div>
 <p align="center"> <b>SkillNet — Learn. Build. Grow. Connect.</b> <br> Bridging the gap between Academia and Industry, one skill at a time. 🚀 </p>

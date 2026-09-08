@@ -1,16 +1,11 @@
 import pool from "../../../../lib/database";
-import { jwtVerify } from "jose";
-import { cookies } from "next/headers";
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+import { getAuthenticatedStudent } from "../../../../lib/student-auth";
 
 export async function POST(request) {
   try {
-    // Get logged-in student's cookie
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const student = await getAuthenticatedStudent();
 
-    if (!token) {
+    if (!student) {
       return Response.json(
         {
           success: false,
@@ -20,10 +15,7 @@ export async function POST(request) {
       );
     }
 
-    // Verify JWT
-    const { payload } = await jwtVerify(token, secret);
-
-    const studentId = payload.studentId;
+    const studentId = student.studentId;
 
     // Get submitted data
     const body = await request.json();

@@ -1,39 +1,13 @@
 import pool from "../../../../lib/database";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET
-);
+import { getAuthenticatedStudent } from "../../../../lib/student-auth";
 
 // =====================================================
 // GET LOGGED-IN STUDENT ID
 // =====================================================
 
 async function getStudentId() {
-  const cookieStore = await cookies();
-
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(
-      token,
-      secret
-    );
-
-    return Number(payload.studentId);
-  } catch (error) {
-    console.error(
-      "JWT verification error:",
-      error
-    );
-
-    return null;
-  }
+  const student = await getAuthenticatedStudent();
+  return student?.studentId ?? null;
 }
 
 // =====================================================
@@ -208,9 +182,6 @@ export async function GET() {
         success: false,
         message:
           "Unable to load assessment result.",
-        error:
-          error?.message ||
-          "Unknown database error.",
       },
       { status: 500 }
     );

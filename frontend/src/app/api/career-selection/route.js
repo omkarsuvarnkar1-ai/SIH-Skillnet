@@ -1,32 +1,12 @@
 import pool from "../../../lib/database";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+import { getAuthenticatedStudent } from "../../../lib/student-auth";
 
 // =====================================================
 // GET LOGGED-IN STUDENT ID
 // =====================================================
 async function getStudentId() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) {
-    console.error("No auth_token cookie found.");
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, secret);
-
-    console.log("JWT PAYLOAD:", payload);
-    console.log("STUDENT ID FROM JWT:", payload.studentId);
-
-    return payload.studentId;
-  } catch (error) {
-    console.error("JWT verification error:", error);
-    return null;
-  }
+  const student = await getAuthenticatedStudent();
+  return student?.studentId ?? null;
 }
 
 // =====================================================
@@ -38,8 +18,6 @@ export async function POST(request) {
     // 1. Get logged-in student
     // -------------------------------------------------
     const studentId = await getStudentId();
-
-    console.log("Career selection - studentId:", studentId);
 
     if (!studentId) {
       return Response.json(
@@ -61,13 +39,6 @@ export async function POST(request) {
       role_id,
       career_uncertain = false,
     } = body;
-
-    console.log("Career selection request:", {
-      studentId,
-      industry_id,
-      role_id,
-      career_uncertain,
-    });
 
     // -------------------------------------------------
     // 3. Validate selection
@@ -204,8 +175,6 @@ export async function POST(request) {
 
     const profile = result.rows[0];
 
-    console.log("Career selection saved:", profile);
-
     // -------------------------------------------------
     // 8. Return success
     // -------------------------------------------------
@@ -221,10 +190,6 @@ export async function POST(request) {
       {
         success: false,
         message: "Unable to save career selection.",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error.message
-            : undefined,
       },
       { status: 500 }
     );

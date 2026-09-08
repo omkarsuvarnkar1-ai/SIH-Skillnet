@@ -1,38 +1,14 @@
 import pool from "../../../../lib/database";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET
-);
+import { getAuthenticatedStudent } from "../../../../lib/student-auth";
+import { enforceRateLimit } from "../../../../lib/rate-limit";
 
 // =====================================================
 // GET LOGGED-IN STUDENT ID
 // =====================================================
 
 async function getStudentId() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(
-      token,
-      secret
-    );
-
-    return payload.studentId;
-  } catch (error) {
-    console.error(
-      "JWT verification error:",
-      error
-    );
-
-    return null;
-  }
+  const student = await getAuthenticatedStudent();
+  return student?.studentId ?? null;
 }
 
 // =====================================================
@@ -49,7 +25,7 @@ function shuffle(array) {
 // GET ASSESSMENT QUESTIONS
 // =====================================================
 
-export async function GET() {
+export async function GET(request) {
   try {
     // -------------------------------------------------
     // 1. GET LOGGED-IN STUDENT
@@ -65,6 +41,16 @@ export async function GET() {
         },
         { status: 401 }
       );
+    }
+
+    const rateLimit = await enforceRateLimit({
+      request,
+      policy: "assessment-questions",
+      studentId,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
     }
 
     // -------------------------------------------------

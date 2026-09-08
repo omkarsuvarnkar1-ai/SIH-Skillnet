@@ -1,14 +1,16 @@
 import { cookies } from "next/headers";
+import {
+  getStudentAuthCookieOptions,
+  STUDENT_AUTH_COOKIE,
+} from "../../../lib/student-auth";
 
 export async function POST() {
   const cookieStore = await cookies();
 
-  cookieStore.set("auth_token", "", {
-    httpOnly: true,
+  cookieStore.set(STUDENT_AUTH_COOKIE, "", {
+    ...getStudentAuthCookieOptions(),
     expires: new Date(0),
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
   });
 
   return Response.json({

@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
+import { getAuthenticatedStudent } from "../../../../lib/student-auth";
+import { enforceRateLimit } from "../../../../lib/rate-limit";
 
 // ============================================================
 // GEMINI SETUP
@@ -36,48 +36,6 @@ const MODELS = [
   "gemini-3.6-flash",
   "gemini-2.5-flash",
 ];
-
-// ============================================================
-// JWT SECRET
-// ============================================================
-
-function getJwtSecret() {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not configured.");
-  }
-
-  return new TextEncoder().encode(process.env.JWT_SECRET);
-}
-
-// ============================================================
-// GET AUTHENTICATED STUDENT
-// ============================================================
-
-async function getAuthenticatedStudent() {
-  const cookieStore = await cookies();
-
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(
-      token,
-      getJwtSecret()
-    );
-
-    return {
-      studentId: payload.studentId,
-      email: payload.email,
-    };
-  } catch (error) {
-    console.error("JWT verification error:", error);
-
-    return null;
-  }
-}
 
 // ============================================================
 // WAIT FUNCTION
@@ -288,10 +246,15 @@ export async function POST(request) {
       );
     }
 
-    console.log(
-      "Authenticated student:",
-      student.studentId
-    );
+    const rateLimit = await enforceRateLimit({
+      request,
+      policy: "roadmap",
+      studentId: student.studentId,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
 
     // ========================================================
     // 3. READ REQUEST BODY
@@ -768,9 +731,7 @@ Use exactly this structure:
     return Response.json(
       {
         success: false,
-        message:
-          error?.message ||
-          "Unable to generate your personalized roadmap.",
+        message: "Unable to generate your personalized roadmap.",
       },
       { status: 500 }
     );

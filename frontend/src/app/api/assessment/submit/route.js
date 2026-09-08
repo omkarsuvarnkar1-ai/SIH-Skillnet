@@ -1,34 +1,20 @@
 import pool from "../../../../lib/database";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+import { getAuthenticatedStudent } from "../../../../lib/student-auth";
+import { enforceRateLimit } from "../../../../lib/rate-limit";
 
 // =====================================================
 // GET LOGGED-IN STUDENT ID
 // =====================================================
 async function getStudentId() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    return payload.studentId;
-  } catch (error) {
-    console.error("JWT verification error:", error);
-    return null;
-  }
+  const student = await getAuthenticatedStudent();
+  return student?.studentId ?? null;
 }
 
 // =====================================================
 // SUBMIT ASSESSMENT
 // =====================================================
 export async function POST(request) {
-  const client = await pool.connect();
+  let client;
 
   try {
     // -------------------------------------------------
@@ -45,6 +31,18 @@ export async function POST(request) {
         { status: 401 }
       );
     }
+
+    const rateLimit = await enforceRateLimit({
+      request,
+      policy: "assessment-submit",
+      studentId,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
+    client = await pool.connect();
 
     // -------------------------------------------------
     // 2. Read request body
@@ -377,7 +375,9 @@ export async function POST(request) {
     // Rollback if anything failed
     // -------------------------------------------------
     try {
-      await client.query("ROLLBACK");
+      if (client) {
+        await client.query("ROLLBACK");
+      }
     } catch (rollbackError) {
       console.error("Rollback error:", rollbackError);
     }
@@ -388,14 +388,10 @@ export async function POST(request) {
       {
         success: false,
         message: "Unable to submit assessment.",
-        error:
-          process.env.NODE_ENV === "development"
-            ? error?.message
-            : undefined,
       },
       { status: 500 }
     );
   } finally {
-    client.release();
+    client?.release();
   }
 }

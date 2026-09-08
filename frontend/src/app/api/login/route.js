@@ -1,38 +1,66 @@
 import pool from "../../../lib/database";
 import bcrypt from "bcryptjs";
-import { SignJWT } from "jose";
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+import {
+  createStudentAuthToken,
+  getStudentAuthCookieOptions,
+  StudentAuthConfigurationError,
+} from "../../../lib/student-auth";
+import { enforceRateLimit, normalizeRateLimitEmail } from "../../../lib/rate-limit";
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    const body = await request.json();
+    let body;
 
-    const { email, password } = body;
-
-    // Check required fields
-    if (!email || !password) {
+    try {
+      body = await request.json();
+    } catch {
       return Response.json(
         {
           success: false,
-          message: "Email and password are required.",
+          message: "Invalid email or password.",
         },
-        { status: 400 }
+        { status: 401 }
+      );
+    }
+
+    const email = normalizeRateLimitEmail(body?.email) || "";
+    const password = body?.password;
+
+    const rateLimit = await enforceRateLimit({
+      request,
+      policy: "student-login",
+      email,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
+    if (!email || typeof password !== "string" || !password) {
+      return Response.json(
+        {
+          success: false,
+          message: "Invalid email or password.",
+        },
+        { status: 401 }
       );
     }
 
     // Find student
     const result = await pool.query(
       `SELECT
-        student_id,
-        full_name,
-        email,
-        password_hash,
-        college,
-        course,
-        year_of_study
-       FROM students
-       WHERE email = $1`,
+        s.student_id,
+        s.full_name,
+        s.email,
+        s.password_hash,
+        COALESCE(sp.college, s.college) AS college,
+        COALESCE(sp.course, s.course) AS course,
+        COALESCE(sp.year_of_study, s.year_of_study) AS year_of_study
+       FROM students s
+       LEFT JOIN student_profiles sp
+         ON s.student_id = sp.student_id
+       WHERE LOWER(TRIM(s.email)) = $1`,
       [email]
     );
 
@@ -65,18 +93,12 @@ export async function POST(request) {
       );
     }
 
-    // Create JWT
-    const token = await new SignJWT({
+    const token = await createStudentAuthToken({
       studentId: student.student_id,
       email: student.email,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("7d")
-      .sign(secret);
+    });
 
-    // Create response
-    const response = Response.json({
+    const response = NextResponse.json({
       success: true,
       message: "Login successful.",
       student: {
@@ -89,17 +111,23 @@ export async function POST(request) {
       },
     });
 
-    // Store JWT in secure HTTP-only cookie
-    response.headers.append(
-      "Set-Cookie",
-      `auth_token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${
-        process.env.NODE_ENV === "production" ? "; Secure" : ""
-      }`
-    );
+    response.cookies.set("auth_token", token, getStudentAuthCookieOptions());
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
+    if (error instanceof StudentAuthConfigurationError) {
+      console.error("Student authentication is not configured.");
+
+      return Response.json(
+        {
+          success: false,
+          message: "Server authentication is not configured.",
+        },
+        { status: 500 }
+      );
+    }
+
+    console.error("Login error.");
 
     return Response.json(
       {

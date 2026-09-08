@@ -1,27 +1,22 @@
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
 import pool from "../../../lib/database";
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+import {
+  getAuthenticatedStudent,
+  StudentAuthConfigurationError,
+} from "../../../lib/student-auth";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const authenticatedStudent = await getAuthenticatedStudent();
 
-    // No login session
-    if (!token) {
+    if (!authenticatedStudent) {
       return Response.json(
         {
           success: false,
-          message: "Not logged in.",
+          message: "Invalid or expired session.",
         },
         { status: 401 }
       );
     }
-
-    // Verify JWT
-    const { payload } = await jwtVerify(token, secret);
 
     // Get student from database
     const result = await pool.query(
@@ -29,13 +24,15 @@ export async function GET() {
         student_id,
         full_name,
         email,
-        college,
-        course,
-        year_of_study,
-        created_at
-       FROM students
-       WHERE student_id = $1`,
-      [payload.studentId]
+        COALESCE(sp.college, s.college) AS college,
+        COALESCE(sp.course, s.course) AS course,
+        COALESCE(sp.year_of_study, s.year_of_study) AS year_of_study,
+        s.created_at AS created_at
+       FROM students s
+       LEFT JOIN student_profiles sp
+         ON s.student_id = sp.student_id
+       WHERE s.student_id = $1`,
+      [authenticatedStudent.studentId]
     );
 
     if (result.rows.length === 0) {
@@ -53,7 +50,19 @@ export async function GET() {
       student: result.rows[0],
     });
   } catch (error) {
-    console.error("Authentication error:", error);
+    if (error instanceof StudentAuthConfigurationError) {
+      console.error("Student authentication is not configured.");
+
+      return Response.json(
+        {
+          success: false,
+          message: "Server authentication is not configured.",
+        },
+        { status: 500 }
+      );
+    }
+
+    console.error("Authentication error.");
 
     return Response.json(
       {

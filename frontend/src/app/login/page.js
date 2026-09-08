@@ -30,7 +30,6 @@ const STAR_LAYOUT = Array.from({ length: 55 }, (_, index) => ({
 export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState("student");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   // ADDED: login fields
   const [email, setEmail] = useState("");
@@ -81,6 +80,12 @@ export default function LoginPage() {
     setErrorMessage("");
     setLoading(true);
 
+    if (selectedRole !== "student") {
+      setErrorMessage("Student login is currently the only available option.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/login", {
         method: "POST",
@@ -89,16 +94,12 @@ export default function LoginPage() {
         },
         credentials: "include",
         body: JSON.stringify({
-          email,
+          email: email.trim().toLowerCase(),
           password,
-          role: selectedRole,
-          rememberMe,
         }),
       });
 
       const data = await response.json();
-
-      console.log("Login response:", data);
 
       if (!response.ok || !data.success) {
         setErrorMessage(
@@ -108,18 +109,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Student login successful
-      if (selectedRole === "student") {
-        window.location.href = "/dashboard";
-        return;
-      }
-
-      // For roles that are not implemented yet
-      setErrorMessage(
-        `${selectedRole} login is not available yet.`
-      );
-
-      setLoading(false);
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Login request error:", error);
 
@@ -485,39 +475,6 @@ export default function LoginPage() {
                 {errorMessage}
               </div>
             )}
-
-            {/* OPTIONS */}
-
-            <div className="form-options">
-
-              <label className="remember">
-
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) =>
-                    setRememberMe(
-                      e.target.checked
-                    )
-                  }
-                />
-
-                <span className="custom-checkbox"></span>
-
-                <span>
-                  Remember me
-                </span>
-
-              </label>
-
-              <button
-                type="button"
-                className="forgot-password"
-              >
-                Forgot password?
-              </button>
-
-            </div>
 
             {/* SIGN IN */}
 

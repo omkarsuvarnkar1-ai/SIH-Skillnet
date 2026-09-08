@@ -28,12 +28,12 @@ export default function SignupPage() {
     const form = event.target;
 
     const data = {
-      full_name: form.full_name.value,
-      email: form.email.value,
+      full_name: form.full_name.value.trim(),
+      email: form.email.value.trim().toLowerCase(),
       password: form.password.value,
-      college: form.college.value,
-      course: form.course.value,
-      year_of_study: form.year_of_study.value,
+      college: form.college.value.trim(),
+      course: form.course.value.trim(),
+      year_of_study: Number(form.year_of_study.value),
     };
 
     try {

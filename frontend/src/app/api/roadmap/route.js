@@ -1,4 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
+import { getAuthenticatedStudent } from "../../../lib/student-auth";
+import { enforceRateLimit } from "../../../lib/rate-limit";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -6,6 +8,28 @@ const ai = new GoogleGenAI({
 
 export async function POST(request) {
   try {
+    const student = await getAuthenticatedStudent();
+
+    if (!student) {
+      return Response.json(
+        {
+          success: false,
+          message: "Invalid or expired session.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const rateLimit = await enforceRateLimit({
+      request,
+      policy: "roadmap",
+      studentId: student.studentId,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimit.response;
+    }
+
     const body = await request.json();
 
     const {
@@ -301,9 +325,7 @@ Use exactly this structure:
     return Response.json(
       {
         success: false,
-        message:
-          error?.message ||
-          "Unable to generate roadmap.",
+        message: "Unable to generate roadmap.",
       },
       { status: 500 }
     );

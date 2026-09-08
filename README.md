@@ -593,55 +593,27 @@ The platform transforms fragmented academic and industry interactions into a con
 * 🎥 **Demo Video:** Add your demo video link here
 
 ---
-
-# 🤝 Contributing
-
-Contributions, suggestions, and improvements are welcome.
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/omkarsuvarnkar1-ai/SIH-Skillnet.git
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Create a feature branch
-
-```bash
-git checkout -b feature/your-feature-name
-```
-
-### 4. Make your changes
-
-Implement and test your changes locally.
-
-### 5. Commit your changes
-
-```bash
-git add .
-git commit -m "Add: your feature description"
-```
-
-### 6. Push your branch
-
-```bash
-git push origin feature/your-feature-name
-```
-
-### 7. Create a Pull Request
-
-Open a Pull Request and describe the changes you made.
-
 ---
-## 🚀 SkillNet
 
-<p align="center">
-  <b>Learn. Build. Grow. Connect.</b>
-  <br><br>
-  Bridging the gap between Academia and Industry, one skill at a time.
-</p>
+<div align="center">
+
+## ✨ Thank You for Visiting SkillNet! ✨
+
+<img src="https://readme-typing-svg.demolab.com?font=Orbitron&weight=700&size=28&duration=2500&pause=800&color=00C853&center=true&vCenter=true&width=650&lines=Thank+You!+%F0%9F%9A%80;Learn.+Build.+Grow.+Connect.;Connecting+Skills%2C+Academia+%26+Industry" alt="Thank You Animation" />
+
+<br>
+
+### 🚀SKillNet
+
+**AI-Powered Skill Development & Industry–Academia Collaboration Platform**
+
+<br>
+
+⭐ **Thank you for exploring our project!** ⭐
+
+<br>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:00C853,50:00E676,100:69F0AE&height=120&section=footer" width="100%" alt="SkillNet Footer Animation"/>
+
+</div>
+<p align="center"> <b>SkillNet — Learn. Build. Grow. Connect.</b> <br> Bridging the gap between Academia and Industry, one skill at a time. 🚀 </p>

@@ -40,17 +40,11 @@ function getSkillIcon(skillName) {
 
   if (name.includes("python")) return "python";
 
-  if (
-    name.includes("javascript") ||
-    name === "js"
-  ) {
+  if (name.includes("javascript") || name === "js") {
     return "javascript";
   }
 
-  if (
-    name.includes("html") &&
-    name.includes("css")
-  ) {
+  if (name.includes("html") && name.includes("css")) {
     return "html-css";
   }
 
@@ -58,13 +52,9 @@ function getSkillIcon(skillName) {
   if (name === "css") return "css";
 
   if (name.includes("git")) return "git";
-
   if (name.includes("linux")) return "linux";
 
-  if (
-    name.includes("sql") ||
-    name.includes("database")
-  ) {
+  if (name.includes("sql") || name.includes("database")) {
     return "sql";
   }
 
@@ -72,12 +62,10 @@ function getSkillIcon(skillName) {
   if (name.includes("node")) return "node";
   if (name.includes("typescript")) return "typescript";
   if (name.includes("java")) return "java";
+
   if (name.includes("c++")) return "cpp";
 
-  if (
-    name === "c" ||
-    name.startsWith("c ")
-  ) {
+  if (name === "c" || name.startsWith("c ")) {
     return "c";
   }
 
@@ -97,10 +85,7 @@ function getSkillIcon(skillName) {
   return "data";
 }
 
-function SimpleIcon({
-  type,
-  className = "",
-}) {
+function SimpleIcon({ type, className = "" }) {
   if (type === "sql") {
     return (
       <span
@@ -124,11 +109,7 @@ function SimpleIcon({
         <circle cx="22" cy="7" r="4" />
         <circle cx="8" cy="28" r="4" />
         <circle cx="36" cy="28" r="4" />
-        <circle
-          cx="22"
-          cy="39"
-          r="3.5"
-        />
+        <circle cx="22" cy="39" r="3.5" />
 
         <path d="M19.8 10.5 10.8 24M24.2 10.5 33.2 24M11.5 31 19 36M32.5 31 25 36" />
       </svg>
@@ -141,15 +122,8 @@ function SimpleIcon({
         className={`html-css-icon ${className}`}
         aria-hidden="true"
       >
-        <img
-          src={ICONS.html}
-          alt=""
-        />
-
-        <img
-          src={ICONS.css}
-          alt=""
-        />
+        <img src={ICONS.html} alt="" />
+        <img src={ICONS.css} alt="" />
       </span>
     );
   }
@@ -157,10 +131,7 @@ function SimpleIcon({
   return (
     <img
       className={`skill-logo ${className}`}
-      src={
-        ICONS[type] ||
-        ICONS.data
-      }
+      src={ICONS[type] || ICONS.data}
       alt=""
       loading="eager"
     />
@@ -196,16 +167,10 @@ function Sparkle() {
   );
 }
 
-function Arrow({
-  left = false,
-}) {
+function Arrow({ left = false }) {
   return (
     <svg
-      className={
-        left
-          ? "arrow left"
-          : "arrow"
-      }
+      className={left ? "arrow left" : "arrow"}
       viewBox="0 0 28 28"
       aria-hidden="true"
     >
@@ -280,9 +245,7 @@ function LeftIllustration() {
   );
 }
 
-function Journey({
-  active = 2,
-}) {
+function Journey({ active = 2 }) {
   const steps = [
     "Profile",
     "Career",
@@ -292,100 +255,69 @@ function Journey({
 
   return (
     <div className="journey">
-      {steps.map(
-        (step, index) => {
-          const complete =
-            index < active;
+      {steps.map((step, index) => {
+        const complete = index < active;
+        const current = index === active;
 
-          const current =
-            index === active;
-
-          return (
+        return (
+          <div
+            className="journey-step-wrap"
+            key={step}
+          >
             <div
-              className="journey-step-wrap"
-              key={step}
+              className={`journey-step ${
+                complete ? "complete" : ""
+              } ${current ? "current" : ""}`}
             >
-              <div
-                className={`journey-step ${
-                  complete
-                    ? "complete"
-                    : ""
-                } ${
-                  current
-                    ? "current"
-                    : ""
-                }`}
-              >
-                {complete
-                  ? "✓"
-                  : current
-                  ? "▮"
-                  : index === 3
-                  ? "⚑"
-                  : ""}
-              </div>
-
-              <span>
-                {step}
-              </span>
-
-              {index <
-                steps.length -
-                  1 && (
-                <i />
-              )}
+              {complete
+                ? "✓"
+                : current
+                ? "▮"
+                : index === 3
+                ? "⚑"
+                : ""}
             </div>
-          );
-        }
-      )}
+
+            <span>
+              {step}
+            </span>
+
+            {index < steps.length - 1 && (
+              <i />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export default function CurrentSkillsPage() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
-  const [career, setCareer] =
-    useState(null);
-
-  const [skills, setSkills] =
-    useState([]);
-
-  const [
-    selectedSkills,
-    setSelectedSkills,
-  ] = useState({});
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
+  const [career, setCareer] = useState(null);
+  const [skills, setSkills] = useState([]);
+  const [selectedSkills, setSelectedSkills] =
+    useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
 
     async function loadSkills() {
       try {
-        const response =
-          await fetch(
-            "/api/current-skills",
-            {
-              cache: "no-store",
-            }
-          );
+        const response = await fetch(
+          "/api/current-skills",
+          {
+            cache: "no-store",
+          }
+        );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
-        if (
-          !response.ok ||
-          !data.success
-        ) {
+        if (!response.ok || !data.success) {
           if (mounted) {
             setMessage(
               data.message ||
@@ -398,30 +330,35 @@ export default function CurrentSkillsPage() {
 
         if (!mounted) return;
 
-        setCareer(
-          data.career || null
+        setCareer(data.career || null);
+        setSkills(data.skills || []);
+
+        const previousSkills = {};
+
+        (data.studentSkills || []).forEach(
+          (skill) => {
+            previousSkills[
+              skill.skill_name
+            ] = skill.self_level;
+          }
         );
 
-        setSkills(
-          data.skills || []
-        );
+        setSelectedSkills(previousSkills);
 
-        const previousSkills =
-          {};
-
-        (
-          data.studentSkills ||
-          []
-        ).forEach((skill) => {
-          previousSkills[
-            skill.skill_name
-          ] =
-            skill.self_level;
-        });
-
-        setSelectedSkills(
-          previousSkills
-        );
+        /*
+         * If skills already exist in the database,
+         * make sure the dashboard also knows that
+         * Step 3 has been completed.
+         */
+        if (
+          Array.isArray(data.studentSkills) &&
+          data.studentSkills.length > 0
+        ) {
+          localStorage.setItem(
+            "skills_completed",
+            "true"
+          );
+        }
       } catch (error) {
         console.error(
           "Current skills loading error:",
@@ -451,35 +388,28 @@ export default function CurrentSkillsPage() {
     career?.role_name ||
     "your selected career";
 
-  const displayedSkills =
-    useMemo(() => {
-      return skills.map(
-        (skill) => ({
-          ...skill,
-          icon: getSkillIcon(
-            skill.skill_name
-          ),
-        })
-      );
-    }, [skills]);
+  const displayedSkills = useMemo(() => {
+    return skills.map((skill) => ({
+      ...skill,
+      icon: getSkillIcon(
+        skill.skill_name
+      ),
+    }));
+  }, [skills]);
 
   function handleLevelChange(
     skillName,
     level
   ) {
-    setSelectedSkills(
-      (previous) => ({
-        ...previous,
-        [skillName]: level,
-      })
-    );
+    setSelectedSkills((previous) => ({
+      ...previous,
+      [skillName]: level,
+    }));
 
     setMessage("");
   }
 
-  async function handleSubmit(
-    event
-  ) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     if (
@@ -493,39 +423,33 @@ export default function CurrentSkillsPage() {
     setMessage("");
 
     try {
-      const selected =
-        skills.map(
-          (skill) => ({
-            skill_name:
-              skill.skill_name,
+      const selected = skills.map(
+        (skill) => ({
+          skill_name:
+            skill.skill_name,
 
-            self_level:
-              selectedSkills[
-                skill.skill_name
-              ] ||
-              "Not familiar",
-          })
-        );
+          self_level:
+            selectedSkills[
+              skill.skill_name
+            ] || "Not familiar",
+        })
+      );
 
-      const response =
-        await fetch(
-          "/api/current-skills",
-          {
-            method: "POST",
+      const response = await fetch(
+        "/api/current-skills",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            skills: selected,
+          }),
+        }
+      );
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              skills: selected,
-            }),
-          }
-        );
-
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (
         !response.ok ||
@@ -539,18 +463,34 @@ export default function CurrentSkillsPage() {
         return;
       }
 
+      /*
+       * IMPORTANT:
+       * Tell the dashboard that Step 3
+       * has been completed.
+       */
+      localStorage.setItem(
+        "skills_completed",
+        "true"
+      );
+
+      /*
+       * Also dispatch an event so that if the
+       * dashboard is listening for changes,
+       * it can update immediately.
+       */
+      window.dispatchEvent(
+        new Event("skills-completed")
+      );
+
       setMessage(
         "Your skills have been saved successfully!"
       );
 
-      window.setTimeout(
-        () => {
-          router.push(
-            "/skill-assessment"
-          );
-        },
-        1000
-      );
+      window.setTimeout(() => {
+        router.push(
+          "/skill-assessment"
+        );
+      }, 1000);
     } catch (error) {
       console.error(
         "Skill saving error:",
@@ -656,7 +596,6 @@ export default function CurrentSkillsPage() {
             }
           >
             Discover Career Paths
-
             <Arrow />
           </button>
         </section>
@@ -725,7 +664,6 @@ export default function CurrentSkillsPage() {
         <aside className="left-panel">
           <div className="step-pill">
             <Sparkle />
-
             STEP 3 OF YOUR SKILL
             JOURNEY
           </div>
@@ -830,9 +768,7 @@ export default function CurrentSkillsPage() {
 
                           <div className="level-options">
                             {LEVELS.map(
-                              (
-                                level
-                              ) => {
+                              (level) => {
                                 const selected =
                                   currentLevel ===
                                   level;

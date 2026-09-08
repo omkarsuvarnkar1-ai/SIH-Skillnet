@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import "./dashboard.css";
 
+// =====================================================
+// NAVIGATION GROUPS
+// =====================================================
+
 const groups = [
   ["", [["dashboard", "home", "Dashboard"]]],
+
   [
     "My development",
     [
@@ -16,6 +21,7 @@ const groups = [
       ["programs", "book", "Learning Programs"],
     ],
   ],
+
   [
     "Opportunities",
     [
@@ -23,7 +29,9 @@ const groups = [
       ["portfolio", "folder", "My Portfolio", "/profile"],
     ],
   ],
+
   ["Progress", [["progress", "chart", "My Progress", "/assessment/result"]]],
+
   [
     "Account",
     [
@@ -34,87 +42,219 @@ const groups = [
   ],
 ];
 
+// =====================================================
+// PLACEHOLDER CONTENT
+// =====================================================
+
 const copy = {
   gaps: [
     "Skill Gap Analysis",
     "Complete a skill assessment to see your strengths, priority gaps, and industry-required skills.",
   ],
+
   programs: [
     "Learning Programs",
     "Curated courses and practical activities will appear here based on your selected career path.",
   ],
+
   opportunities: [
     "Internships & Projects",
     "Once your skill profile is ready, discover opportunities that match your strengths and learning goals.",
   ],
+
   portfolio: [
     "My Portfolio",
     "Showcase projects, certifications, achievements, and your resume in one industry-ready profile.",
   ],
+
   progress: [
     "My Progress",
     "Track your assessments, completed learning, and progress toward industry readiness.",
   ],
+
   notifications: [
     "Notifications",
     "You are all caught up. New assessments, program recommendations, and opportunity updates will appear here.",
   ],
+
   settings: [
     "Settings",
     "Manage your account, password, and notification preferences from your student workspace.",
   ],
 };
 
+// =====================================================
+// DASHBOARD PAGE
+// =====================================================
+
 export default function DashboardPage() {
   const router = useRouter();
 
   const [student, setStudent] = useState(null);
+  const [profile, setProfile] = useState(null);
+
+  const [assessmentCompleted, setAssessmentCompleted] =
+    useState(false);
+
+  const [skillsCompleted, setSkillsCompleted] =
+    useState(false);
+
   const [loading, setLoading] = useState(true);
+
   const [drawer, setDrawer] = useState(false);
+
   const [active, setActive] = useState("dashboard");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const response = await fetch("/api/me");
-        const result = await response.json();
+  // ===================================================
+  // LOAD STUDENT + PROFILE + ASSESSMENT STATUS
+  // ===================================================
 
-        if (!result.success) {
-          return router.push("/login");
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        // ------------------------------------------------
+        // 1. GET LOGGED-IN STUDENT
+        // ------------------------------------------------
+
+        const studentResponse = await fetch("/api/me", {
+          cache: "no-store",
+        });
+
+        const studentResult =
+          await studentResponse.json();
+
+        if (
+          !studentResponse.ok ||
+          !studentResult.success
+        ) {
+          router.push("/login");
+          return;
         }
 
-        setStudent(result.student);
+        setStudent(studentResult.student);
+
+        // ------------------------------------------------
+        // 2. GET PROFILE
+        // ------------------------------------------------
+
+        try {
+          const profileResponse =
+            await fetch("/api/profile", {
+              cache: "no-store",
+            });
+
+          const profileResult =
+            await profileResponse.json();
+
+          if (
+            profileResponse.ok &&
+            profileResult.success
+          ) {
+            setProfile(profileResult.profile);
+          }
+        } catch (profileError) {
+          console.error(
+            "Profile loading error:",
+            profileError
+          );
+        }
+
+        // ------------------------------------------------
+        // 3. CHECK ASSESSMENT
+        // ------------------------------------------------
+
+        try {
+          const assessmentResponse =
+            await fetch(
+              "/api/assessment/result",
+              {
+                cache: "no-store",
+              }
+            );
+
+          const assessmentResult =
+            await assessmentResponse.json();
+
+          if (
+            assessmentResponse.ok &&
+            assessmentResult.success &&
+            assessmentResult.result
+          ) {
+            setAssessmentCompleted(true);
+          } else {
+            setAssessmentCompleted(false);
+          }
+        } catch (assessmentError) {
+          console.error(
+            "Assessment status error:",
+            assessmentError
+          );
+
+          setAssessmentCompleted(false);
+        }
+
+        // ------------------------------------------------
+        // 4. CHECK CURRENT SKILLS
+        // ------------------------------------------------
+        //
+        // There is currently no skills API.
+        //
+        // For now we use a local completion flag.
+        // We will connect this to PostgreSQL later.
+        // ------------------------------------------------
+
+        try {
+          const savedSkillsStatus =
+            localStorage.getItem(
+              "skills_completed"
+            );
+
+          if (savedSkillsStatus === "true") {
+            setSkillsCompleted(true);
+          }
+        } catch (storageError) {
+          console.error(
+            "Skills status error:",
+            storageError
+          );
+        }
       } catch (error) {
-        console.error("Dashboard error:", error);
+        console.error(
+          "Dashboard loading error:",
+          error
+        );
       } finally {
         setLoading(false);
       }
     }
 
-    load();
+    loadDashboard();
   }, [router]);
+
+  // =====================================================
+  // CHECK CAREER SELECTION
+  // =====================================================
 
   useEffect(() => {
-    async function checkCareer() {
-      try {
-        const response = await fetch("/api/profile");
-        const result = await response.json();
-
-        if (
-          response.ok &&
-          result.success &&
-          ((!result.profile.industry_id && !result.profile.role_id) ||
-            result.profile.career_uncertain)
-        ) {
-          router.push("/career-selection");
-        }
-      } catch (error) {
-        console.error("Career selection check error:", error);
-      }
+    if (!profile) {
+      return;
     }
 
-    checkCareer();
-  }, [router]);
+    const careerMissing =
+      !profile.industry_id ||
+      !profile.role_id;
+
+    const careerUncertain =
+      profile.career_uncertain === true;
+
+    if (careerMissing || careerUncertain) {
+      router.push("/career-selection");
+    }
+  }, [profile, router]);
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
   async function logout() {
     try {
@@ -124,9 +264,16 @@ export default function DashboardPage() {
 
       router.push("/login");
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error(
+        "Logout error:",
+        error
+      );
     }
   }
+
+  // =====================================================
+  // NAVIGATION
+  // =====================================================
 
   function choose(item) {
     setDrawer(false);
@@ -143,6 +290,10 @@ export default function DashboardPage() {
     });
   }
 
+  // =====================================================
+  // LOADING
+  // =====================================================
+
   if (loading) {
     return (
       <main className="dashboard-loading">
@@ -150,6 +301,10 @@ export default function DashboardPage() {
       </main>
     );
   }
+
+  // =====================================================
+  // NO STUDENT
+  // =====================================================
 
   if (!student) {
     return (
@@ -159,14 +314,36 @@ export default function DashboardPage() {
     );
   }
 
-  const firstName = student.full_name?.split(" ")[0] || "Student";
+  const firstName =
+    student.full_name?.split(" ")[0] ||
+    "Student";
+
+  // =====================================================
+  // COMPLETION STATUS
+  // =====================================================
+
+  const profileCompleted = Boolean(
+    profile &&
+      profile.college &&
+      profile.course
+  );
+
+  const careerCompleted =
+    Boolean(profile?.industry_id) &&
+    Boolean(profile?.role_id) &&
+    profile?.career_uncertain !== true;
 
   return (
     <main className="dashboard-page">
+
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <header className="dashboard-header">
 
-        {/* LEFT SIDE */}
         <div className="header-left">
+
           <button
             className="menu-button"
             type="button"
@@ -179,19 +356,23 @@ export default function DashboardPage() {
           <button
             className="brand-button"
             type="button"
-            onClick={() => setActive("dashboard")}
+            onClick={() =>
+              setActive("dashboard")
+            }
           >
             Skill<span>Net</span>
           </button>
+
         </div>
 
-        {/* RIGHT SIDE */}
         <div className="header-actions">
 
           <button
             className="notification-button"
             type="button"
-            onClick={() => setActive("notifications")}
+            onClick={() =>
+              setActive("notifications")
+            }
             aria-label="Open notifications"
           >
             <Icon name="bell" />
@@ -201,23 +382,36 @@ export default function DashboardPage() {
           <button
             className="avatar-button"
             type="button"
-            onClick={() => router.push("/profile")}
+            onClick={() =>
+              router.push("/profile")
+            }
             aria-label="Open profile"
           >
             {firstName[0]}
           </button>
 
         </div>
+
       </header>
 
-      {/* SIDE DRAWER */}
-      <aside className={`dashboard-drawer ${drawer ? "open" : ""}`}>
+      {/* =================================================
+          SIDE DRAWER
+      ================================================= */}
+
+      <aside
+        className={`dashboard-drawer ${
+          drawer ? "open" : ""
+        }`}
+      >
 
         <div className="drawer-head">
+
           <button
             className="brand-button"
             type="button"
-            onClick={() => choose(["dashboard"])}
+            onClick={() =>
+              choose(["dashboard"])
+            }
           >
             Skill<span>Net</span>
           </button>
@@ -225,11 +419,14 @@ export default function DashboardPage() {
           <button
             className="drawer-close"
             type="button"
-            onClick={() => setDrawer(false)}
+            onClick={() =>
+              setDrawer(false)
+            }
             aria-label="Close menu"
           >
             <Icon name="close" />
           </button>
+
         </div>
 
         <p className="drawer-caption">
@@ -237,11 +434,13 @@ export default function DashboardPage() {
         </p>
 
         <nav>
+
           {groups.map(([label, items]) => (
             <section
               className="nav-group"
               key={label || "home"}
             >
+
               {label && <p>{label}</p>}
 
               {items.map((item) => (
@@ -253,17 +452,23 @@ export default function DashboardPage() {
                       ? "nav-item active"
                       : "nav-item"
                   }
-                  onClick={() => choose(item)}
+                  onClick={() =>
+                    choose(item)
+                  }
                 >
+
                   <span>
                     <Icon name={item[1]} />
                   </span>
 
                   {item[2]}
+
                 </button>
               ))}
+
             </section>
           ))}
+
         </nav>
 
         <button
@@ -271,47 +476,112 @@ export default function DashboardPage() {
           type="button"
           onClick={logout}
         >
+
           <span>
             <Icon name="logout" />
           </span>
 
           Logout
+
         </button>
+
       </aside>
+
+      {/* =================================================
+          BACKDROP
+      ================================================= */}
 
       {drawer && (
         <button
           className="drawer-backdrop"
           type="button"
-          onClick={() => setDrawer(false)}
+          onClick={() =>
+            setDrawer(false)
+          }
           aria-label="Close navigation menu"
         />
       )}
 
+      {/* =================================================
+          CONTENT
+      ================================================= */}
+
       <section className="dashboard-content">
+
         {copy[active] ? (
           <Placeholder
             title={copy[active][0]}
             description={copy[active][1]}
-            onClick={() => setActive("dashboard")}
+            onClick={() =>
+              setActive("dashboard")
+            }
           />
         ) : (
           <Home
             student={student}
+            profile={profile}
             firstName={firstName}
             router={router}
+            profileCompleted={
+              profileCompleted
+            }
+            careerCompleted={
+              careerCompleted
+            }
+            skillsCompleted={
+              skillsCompleted
+            }
+            assessmentCompleted={
+              assessmentCompleted
+            }
           />
         )}
+
       </section>
+
     </main>
   );
 }
 
-function Home({ student, firstName, router }) {
+// =====================================================
+// HOME
+// =====================================================
+
+function Home({
+  student,
+  profile,
+  firstName,
+  router,
+  profileCompleted,
+  careerCompleted,
+  skillsCompleted,
+  assessmentCompleted,
+}) {
+
+  // ===================================================
+  // DETERMINE READINESS
+  // ===================================================
+
+  const completedSteps = [
+    profileCompleted,
+    careerCompleted,
+    skillsCompleted,
+    assessmentCompleted,
+  ].filter(Boolean).length;
+
+  const allCompleted =
+    completedSteps === 4;
+
   return (
     <>
+      {/* =================================================
+          WELCOME
+      ================================================= */}
+
       <section className="welcome-row">
+
         <div>
+
           <p className="eyebrow">
             YOUR SKILL JOURNEY
           </p>
@@ -325,94 +595,188 @@ function Home({ student, firstName, router }) {
             Build the skills that turn your ambition
             into industry readiness.
           </p>
+
         </div>
 
         <button
           className="outline-action"
           type="button"
-          onClick={() => router.push("/profile")}
+          onClick={() =>
+            router.push("/profile")
+          }
         >
           <Icon name="user" />
           My Profile
         </button>
+
       </section>
 
-      {/* READINESS CARD - KEEPING ORIGINAL BLUE THEME */}
+      {/* =================================================
+          READINESS CARD
+      ================================================= */}
+
       <section className="readiness-card">
+
         <div className="readiness-copy">
+
           <p className="eyebrow">
             INDUSTRY READINESS
           </p>
 
           <h2>
-            Your journey starts here.
+            {allCompleted
+              ? "Your skill profile is ready."
+              : "Your journey starts here."}
           </h2>
 
           <p>
-            Set your career direction, add your
-            current skills, and take an assessment
-            to unlock your personal learning roadmap.
+            {allCompleted
+              ? "You have completed your core setup. Your assessment results can now power your personalized learning journey."
+              : "Set your career direction, add your current skills, and take an assessment to unlock your personal learning roadmap."}
           </p>
 
           <button
             className="primary-action"
             type="button"
-            onClick={() => router.push("/career-selection")}
+            onClick={() => {
+
+              if (!careerCompleted) {
+                router.push(
+                  "/career-selection"
+                );
+                return;
+              }
+
+              if (!skillsCompleted) {
+                router.push("/skills");
+                return;
+              }
+
+              if (!assessmentCompleted) {
+                router.push(
+                  "/skill-assessment"
+                );
+                return;
+              }
+
+              router.push(
+                "/assessment/result"
+              );
+
+            }}
           >
-            Continue your journey
+
+            {allCompleted
+              ? "View your results"
+              : "Continue your journey"}
+
             <Icon name="arrow" />
+
           </button>
+
         </div>
 
         <div className="readiness-orbit">
+
           <div className="orbit orbit-a" />
+
           <div className="orbit orbit-b" />
 
           <div className="readiness-score">
-            <strong>01</strong>
+
+            <strong>
+              {completedSteps
+                .toString()
+                .padStart(2, "0")}
+            </strong>
+
             <span>
-              START
+              OF
               <br />
-              HERE
+              04
             </span>
+
           </div>
 
           <i className="orbit-dot dot-a" />
+
           <i className="orbit-dot dot-b" />
+
           <i className="orbit-dot dot-c" />
+
         </div>
+
       </section>
 
-      {/* METRICS */}
+      {/* =================================================
+          METRICS
+      ================================================= */}
+
       <section className="metric-grid">
+
         <Metric
           icon="skills"
           title="Skill readiness"
-          value="Getting started"
-          detail="Add your current skills"
+          value={
+            skillsCompleted
+              ? "Completed"
+              : "Getting started"
+          }
+          detail={
+            skillsCompleted
+              ? "Current skills added"
+              : "Add your current skills"
+          }
         />
 
         <Metric
           icon="assessment"
           title="Assessments"
-          value="Pending"
-          detail="Discover your skill level"
+          value={
+            assessmentCompleted
+              ? "Completed"
+              : "Pending"
+          }
+          detail={
+            assessmentCompleted
+              ? "View your assessment result"
+              : "Discover your skill level"
+          }
         />
 
         <Metric
           icon="chart"
           title="Learning progress"
-          value="0%"
-          detail="Your roadmap is waiting"
+          value={
+            assessmentCompleted
+              ? "Ready"
+              : "0%"
+          }
+          detail={
+            assessmentCompleted
+              ? "Roadmap can be personalized"
+              : "Your roadmap is waiting"
+          }
         />
+
       </section>
 
-      {/* LOWER CONTENT */}
+      {/* =================================================
+          LOWER CONTENT
+      ================================================= */}
+
       <section className="dashboard-grid">
 
+        {/* =================================================
+            JOURNEY CARD
+        ================================================= */}
+
         <article className="journey-card">
+
           <div className="section-heading">
+
             <div>
+
               <p className="eyebrow">
                 YOUR PATH
               </p>
@@ -420,54 +784,129 @@ function Home({ student, firstName, router }) {
               <h2>
                 Skill development flow
               </h2>
+
             </div>
 
             <span className="status-pill">
-              IN PROGRESS
+              {allCompleted
+                ? "READY"
+                : "IN PROGRESS"}
             </span>
+
           </div>
 
           <div className="journey-steps">
 
+            {/* =================================================
+                STEP 1
+            ================================================= */}
+
             <Step
               number="1"
-              complete
+              complete={profileCompleted}
               title="Complete your profile"
-              text={`${student.college || "Add your college"} · ${
-                student.course || "Add your course"
-              }`}
-              action="Edit profile"
-              click={() => router.push("/profile")}
+              text={
+                profileCompleted
+                  ? `${student.college || "College"} · ${
+                      student.course || "Course"
+                    }`
+                  : "Add your academic information."
+              }
+              action={
+                profileCompleted
+                  ? "Edit profile"
+                  : "Complete profile"
+              }
+              click={() =>
+                router.push("/profile")
+              }
             />
+
+            {/* =================================================
+                STEP 2
+            ================================================= */}
 
             <Step
               number="2"
+              complete={careerCompleted}
               title="Choose your career direction"
-              text="Tell us what role you want to work toward."
-              action="Choose career"
-              click={() => router.push("/career-selection")}
+              text={
+                careerCompleted
+                  ? "Your industry and role have been selected."
+                  : "Tell us what role you want to work toward."
+              }
+              action={
+                careerCompleted
+                  ? "Review career"
+                  : "Choose career"
+              }
+              click={() =>
+                router.push(
+                  "/career-selection"
+                )
+              }
             />
+
+            {/* =================================================
+                STEP 3
+            ================================================= */}
 
             <Step
               number="3"
+              complete={skillsCompleted}
               title="Add your current skills"
-              text="Share what you already know."
-              action="My skills"
-              click={() => router.push("/skills")}
+              text={
+                skillsCompleted
+                  ? "Your current skills have been added."
+                  : "Share what you already know."
+              }
+              action={
+                skillsCompleted
+                  ? "Review skills"
+                  : "My skills"
+              }
+              click={() =>
+                router.push("/skills")
+              }
             />
+
+            {/* =================================================
+                STEP 4
+            ================================================= */}
 
             <Step
               number="4"
+              complete={assessmentCompleted}
               title="Take your skill assessment"
-              text="Identify strengths and gaps."
-              action="Start assessment"
-              click={() => router.push("/skill-assessment")}
+              text={
+                assessmentCompleted
+                  ? "Your assessment results are ready."
+                  : "Identify strengths and gaps."
+              }
+              action={
+                assessmentCompleted
+                  ? "View results"
+                  : "Start assessment"
+              }
+              click={() =>
+                router.push(
+                  assessmentCompleted
+                    ? "/assessment/result"
+                    : "/skill-assessment"
+                )
+              }
             />
 
           </div>
+
         </article>
 
+        {/* =================================================
+            RECENT ACTIVITY
+        ================================================= */}
+
         <article className="activity-card">
+
           <p className="eyebrow">
             RECENT ACTIVITY
           </p>
@@ -477,24 +916,43 @@ function Home({ student, firstName, router }) {
           </h2>
 
           <div className="empty-activity">
+
             <span>
               <Icon name="spark" />
             </span>
 
             <p>
-              Your completed actions and assessment
-              results will appear here.
+              {assessmentCompleted
+                ? "Your assessment has been completed. Continue building your skills and learning roadmap."
+                : "Your completed actions and assessment results will appear here."}
             </p>
+
           </div>
 
           <button
             className="text-action"
             type="button"
-            onClick={() => router.push("/skills")}
+            onClick={() => {
+
+              if (assessmentCompleted) {
+                router.push(
+                  "/assessment/result"
+                );
+              } else {
+                router.push("/skills");
+              }
+
+            }}
           >
-            Explore my skills
+
+            {assessmentCompleted
+              ? "View assessment result"
+              : "Explore my skills"}
+
             <Icon name="arrow" />
+
           </button>
+
         </article>
 
       </section>
@@ -502,9 +960,19 @@ function Home({ student, firstName, router }) {
   );
 }
 
-function Metric({ icon, title, value, detail }) {
+// =====================================================
+// METRIC
+// =====================================================
+
+function Metric({
+  icon,
+  title,
+  value,
+  detail,
+}) {
   return (
     <article className="metric-card">
+
       <span className="metric-icon">
         <Icon name={icon} />
       </span>
@@ -514,9 +982,14 @@ function Metric({ icon, title, value, detail }) {
       <strong>{value}</strong>
 
       <small>{detail}</small>
+
     </article>
   );
 }
+
+// =====================================================
+// STEP
+// =====================================================
 
 function Step({
   number,
@@ -528,6 +1001,7 @@ function Step({
 }) {
   return (
     <div className="journey-step">
+
       <div
         className={
           complete
@@ -535,14 +1009,17 @@ function Step({
             : "step-number"
         }
       >
+
         {complete ? (
           <Icon name="check" />
         ) : (
           number
         )}
+
       </div>
 
       <div>
+
         <h3>{title}</h3>
 
         <p>{text}</p>
@@ -551,13 +1028,22 @@ function Step({
           type="button"
           onClick={click}
         >
+
           {action}
+
           <Icon name="arrow" />
+
         </button>
+
       </div>
+
     </div>
   );
 }
+
+// =====================================================
+// PLACEHOLDER
+// =====================================================
 
 function Placeholder({
   title,
@@ -566,6 +1052,7 @@ function Placeholder({
 }) {
   return (
     <section className="placeholder-section">
+
       <p className="eyebrow">
         STUDENT WORKSPACE
       </p>
@@ -577,6 +1064,7 @@ function Placeholder({
       </p>
 
       <div className="placeholder-card">
+
         <span>
           <Icon name="spark" />
         </span>
@@ -596,16 +1084,27 @@ function Placeholder({
           type="button"
           onClick={onClick}
         >
+
           Back to dashboard
+
           <Icon name="arrow" />
+
         </button>
+
       </div>
+
     </section>
   );
 }
 
+// =====================================================
+// ICONS
+// =====================================================
+
 function Icon({ name }) {
+
   const paths = {
+
     home: (
       <>
         <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
@@ -615,7 +1114,12 @@ function Icon({ name }) {
 
     user: (
       <>
-        <circle cx="12" cy="8" r="4" />
+        <circle
+          cx="12"
+          cy="8"
+          r="4"
+        />
+
         <path d="M4 21a8 8 0 0 1 16 0" />
       </>
     ),
@@ -623,6 +1127,7 @@ function Icon({ name }) {
     skills: (
       <>
         <path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7Z" />
+
         <path d="m8.5 12 2.2 2.2 4.8-4.8" />
       </>
     ),
@@ -630,13 +1135,19 @@ function Icon({ name }) {
     assessment: (
       <>
         <path d="M7 3h10l2 2v16H5V5l2-2Z" />
+
         <path d="M9 10h6M9 14h6M9 18h3" />
       </>
     ),
 
     gap: (
       <>
-        <circle cx="12" cy="12" r="8" />
+        <circle
+          cx="12"
+          cy="12"
+          r="8"
+        />
+
         <path d="M12 8v4l3 2" />
       </>
     ),
@@ -644,6 +1155,7 @@ function Icon({ name }) {
     roadmap: (
       <>
         <path d="M4 19c5-1 3-10 8-10s3 9 8 8" />
+
         <path d="m17 14 3 3-3 3" />
       </>
     ),
@@ -651,13 +1163,21 @@ function Icon({ name }) {
     book: (
       <>
         <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5Z" />
+
         <path d="M4 5.5v16M8 7h8" />
       </>
     ),
 
     briefcase: (
       <>
-        <rect x="3" y="7" width="18" height="13" rx="2" />
+        <rect
+          x="3"
+          y="7"
+          width="18"
+          height="13"
+          rx="2"
+        />
+
         <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2" />
       </>
     ),
@@ -669,6 +1189,7 @@ function Icon({ name }) {
     chart: (
       <>
         <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+
         <path d="m4 9 6-5 6 4 5-6" />
       </>
     ),
@@ -681,7 +1202,12 @@ function Icon({ name }) {
 
     settings: (
       <>
-        <circle cx="12" cy="12" r="3" />
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+        />
+
         <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 2-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-2.8v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2-2 .1-.1A1.7 1.7 0 0 0 7.4 15a1.7 1.7 0 0 0-1.5-1H5.7v-2.8h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L7 8.2l2-2 .1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h2.8v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2 2-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1Z" />
       </>
     ),
@@ -689,6 +1215,7 @@ function Icon({ name }) {
     logout: (
       <>
         <path d="M10 17l5-5-5-5M15 12H3" />
+
         <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
       </>
     ),
@@ -696,6 +1223,7 @@ function Icon({ name }) {
     arrow: (
       <>
         <path d="M5 12h14" />
+
         <path d="M13 6l6 6-6 6" />
       </>
     ),
@@ -707,6 +1235,7 @@ function Icon({ name }) {
     close: (
       <>
         <path d="m6 6 12 12" />
+
         <path d="M18 6 6 18" />
       </>
     ),
@@ -714,7 +1243,9 @@ function Icon({ name }) {
     menu: (
       <>
         <path d="M4 6h16" />
+
         <path d="M4 12h16" />
+
         <path d="M4 18h16" />
       </>
     ),
